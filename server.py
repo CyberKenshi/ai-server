@@ -65,14 +65,12 @@ def preprocess_data(raw_data: List[Dict[str, Any]]) -> pd.DataFrame:
 
     df.columns = df.columns.str.strip()
 
-    # Đảm bảo đủ column
     for col in meta['numerical_cols']:
         if col not in df.columns:
             df[col] = 0
 
     df = df[meta['numerical_cols']].copy()
 
-    # Xóa constant cols
     if 'constant_cols' in meta:
         df.drop(columns=meta['constant_cols'], errors='ignore', inplace=True)
 
@@ -137,13 +135,11 @@ def preprocess_data(raw_data: List[Dict[str, Any]]) -> pd.DataFrame:
 @app.post("/predict", response_model=List[PredictionOutput])
 async def predict(request: Request):
 
-    # --- 0) In raw JSON Logstash gửi lên ---
     body = await request.json()
     print("\n========== NHẬN YÊU CẦU TỪ LOGSTASH ==========")
     print("📥 Raw body nhận từ Logstash:")
     print(body)
 
-    # --- 1) AUTO FIX INPUT FORMAT ---
     if isinstance(body, dict) and "logs" not in body:
         logs = [body]            # Logstash gửi 1 event → gói thành mảng
         print("📌 Logstash gửi 1 log. Đã chuyển thành logs[]")
@@ -176,20 +172,11 @@ async def predict(request: Request):
     # --- 4) Trả về kết quả ---
     results = []
     for score in anomaly_scores:
-        # results.append(PredictionOutput(
-        #     anomaly_score=float(score),
-        #     is_anomaly=bool(score > threshold),
-        #     threshold_used=threshold
-        # ))
-        results.append({
-            "anomaly_score": float(score),
-            "is_anomaly": bool(score > threshold),
-            "threshold_used": threshold,
-
-            # ---- FIELD FAKE THÊM VÀO ----
-            "ai_mark": "checked_by_ai",            # string
-            "ai_score": round(np.random.uniform(0, 1), 3)  # số fake
-        })
+        results.append(PredictionOutput(
+            anomaly_score=float(score),
+            is_anomaly=bool(score > threshold),
+            threshold_used=threshold
+        ))
 
 
 
